@@ -17,7 +17,20 @@ func (c *Controller) Movie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" {
-		c.GetByIdMovie(w, r)
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			c.GetListMovie(w, r)
+		} else {
+			c.GetByIdMovie(w, r)
+		}
+	}
+
+	if r.Method == "PUT" {
+		c.UpdateMovie(w, r)
+	}
+
+	if r.Method == "DELETE" {
+		c.DeleteMovie(w, r)
 	}
 }
 
@@ -60,6 +73,22 @@ func (c *Controller) CreateMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+func (c *Controller) GetListMovie(w http.ResponseWriter, r *http.Request) {
+
+	movie, err := storage.GetListMovie(c.db)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error whiling storage get List movie: ", err)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(movie)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error whiling encode movie: ", err)
+		return
+	}
+}
 
 func (c *Controller) GetByIdMovie(w http.ResponseWriter, r *http.Request) {
 
@@ -78,4 +107,57 @@ func (c *Controller) GetByIdMovie(w http.ResponseWriter, r *http.Request) {
 		log.Println("error whiling encode movie: ", err)
 		return
 	}
+}
+func (c *Controller) UpdateMovie(w http.ResponseWriter, r *http.Request) {
+	var movie models.Movie
+
+	body, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("error whiling movie put method: ", err)
+		return
+	}
+
+	err = json.Unmarshal(body, &movie)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println("error whiling movie json unmarshal: ", err)
+		return
+	}
+
+	err = storage.UpdateMovie(c.db, movie)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error whiling storage update movie: ", err)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode("Updated")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error whiling encode movie: ", err)
+		return
+	}
+
+}
+
+func (c *Controller) DeleteMovie(w http.ResponseWriter, r *http.Request) {
+
+	id := r.URL.Query().Get("id")
+
+	err := storage.DeleteMovie(c.db, id)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error whiling storage get by id movie: ", err)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode("succesfully deleted")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Println("error whiling encode movie: ", err)
+		return
+	}
+
 }
